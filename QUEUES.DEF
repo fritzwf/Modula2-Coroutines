@@ -1,0 +1,39 @@
+DEFINITION MODULE Queues;
+
+FROM SYSTEM IMPORT BYTE;
+
+EXPORT QUALIFIED Queue, CreateQ, Enqueue, Dequeue, FirstQ, EmptyQ;
+
+TYPE Queue;
+
+(***********************************************************)
+
+PROCEDURE CreateQ(VAR q : Queue);
+
+(* Initialize a Queue variable *)
+
+(***********************************************************)
+
+PROCEDURE Dequeue(VAR q : Queue; VAR i : ARRAY OF BYTE);
+
+(* Remove the front element from a Queue. *)
+
+(***********************************************************)
+
+PROCEDURE EmptyQ(q : Queue) : BOOLEAN;
+
+(* TRUE if q is Empty, FALSE otherwise *)
+
+(***********************************************************)
+
+PROCEDURE Enqueue(VAR q : Queue; i : ARRAY OF BYTE);
+
+(* Insert a new element into the back of the queue *)
+
+(***********************************************************)
+
+PROCEDURE FirstQ(q : Queue; VAR i : ARRAY OF BYTE);
+
+(* Return the first element from a queue, if it is not the empty queue *)
+
+END Queues.

@@ -1,0 +1,101 @@
+IMPLEMENTATION MODULE Schedule[7];
+(******************************************************************************)
+(* This is the scheduler module.  This shows Modula-2's operating system      *)
+(* characteristics.  Modula-2 was originally created as a systems programming *)
+(* language.  The CPU clock vector interrupt is overwritten and the schedular *)
+(* code is put in its place.  Notice how the Modula-2 language even allows    *)
+(* for the module to have a priority level!                                   *)
+(* By Fritz Feuerbacher                                                       *)
+(******************************************************************************)
+
+
+FROM SYSTEM  IMPORT ADDRESS, NEWPROCESS, IOTRANSFER, SWI, SIZE;
+FROM Storage IMPORT ALLOCATE;
+FROM Queues  IMPORT Queue, CreateQ, Enqueue, Dequeue, FirstQ, EmptyQ;
+
+CONST timerInt = 1CH;  (* IBM PC timer interrupt *)
+
+TYPE Semaphore = POINTER TO SemaphoreRecord;
+     SemaphoreRecord = RECORD
+                       count : INTEGER;
+                       queue : Queue;
+                   END (* record *);
+
+VAR readyQueue : Queue;
+    schedProcess, currentProcess : ADDRESS;  (* coroutines *)
+    currentSemaphore : Semaphore;
+    event : (block, terminate, timeout);
+
+PROCEDURE MakeReady(proc : PROC; wkspSize : CARDINAL);
+   (* prepares a process for execution *)
+   VAR wksp : ADDRESS;
+       process : ADDRESS;  (* coroutine *)
+
+   BEGIN
+      ALLOCATE(wksp, wkspSize);
+      NEWPROCESS(proc, wksp, wkspSize, process);
+      Enqueue(readyQueue, process);
+ END MakeReady;
+
+PROCEDURE Scheduler;
+   (* begins execution of processes that have been prepared by previous
+      calls of MakeReady *)
+      BEGIN
+        WHILE NOT EmptyQ(readyQueue) DO
+          Dequeue(readyQueue, currentProcess);
+          IOTRANSFER(schedProcess, currentProcess, timerInt);
+         CASE event OF
+            block : Enqueue(currentSemaphore^.queue, currentProcess)  |
+            terminate : (* do nothing *)  |
+            timeout : Enqueue(readyQueue, currentProcess);
+          END (* case *);
+            event := timeout;  (* restore default event *)
+     END (* while *);
+END Scheduler;
+
+PROCEDURE Terminate;
+  (* terminates the current process *)
+  BEGIN
+    event := terminate;
+    SWI(timerInt);
+END Terminate;
+
+PROCEDURE InitSem(VAR sem : Semaphore; value : CARDINAL);
+  (* initializes a semaphore by setting its count to "value"
+     and making its queue empty *)
+  BEGIN
+    ALLOCATE(sem, SIZE(SemaphoreRecord));
+    sem^.count := value;
+    CreateQ( sem^.queue );
+END InitSem;
+
+PROCEDURE P( VAR sem : Semaphore );
+   (* decrements semaphore count; if count is less than zero then the
+      current process is suspended and put on the semaphore queue *)
+  BEGIN
+    DEC(sem^.count);
+    IF sem^.count < 0 THEN
+       event := block;
+       currentSemaphore := sem;
+       SWI(timerInt);
+    END (* if *);
+END P;
+
+PROCEDURE V( VAR sem : Semaphore );
+  (* increments semaphore count; if count is less than or equal to zero,
+     it then enables a process on the semaphore queue                 *)
+VAR process : ADDRESS;
+
+  BEGIN
+     INC(sem^.count);
+     IF sem^.count <= 0 THEN
+        Dequeue(sem^.queue, process);
+        Enqueue(readyQueue, process);
+     END (* if *);
+END V;
+
+BEGIN
+   CreateQ(readyQueue);
+   event := timeout; (* default event *)
+
+END Schedule.

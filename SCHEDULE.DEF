@@ -1,0 +1,36 @@
+DEFINITION MODULE Schedule;
+(******************************************************************************)
+(* This is the scheduler module.  This shows Modula-2's operating system      *)
+(* characteristics.  Modula-2 was originally created as a systems programming *)
+(* language.  The CPU clock vector interrupt is overwritten and the schedular *)
+(* code is put in its place.                                                  *)
+(* By Fritz Feuerbacher                                                       *)
+(******************************************************************************)
+
+EXPORT QUALIFIED Semaphore, MakeReady, Scheduler, Terminate, InitSem, P, V;
+
+TYPE Semaphore;
+
+PROCEDURE MakeReady(proc : PROC; wkspSize : CARDINAL);
+   (* prepares a process for execution *)
+
+PROCEDURE Scheduler;
+   (* begins execution of processes that have been prepared by previous
+      calls of MakeReady *)
+
+PROCEDURE Terminate;
+  (* terminates the current process *)
+
+PROCEDURE InitSem(VAR sem : Semaphore; value : CARDINAL);
+  (* initializes a semaphore by setting its count to "value"
+     and making its queue empty *)
+
+PROCEDURE P( VAR sem : Semaphore );
+   (* decrements semaphore count; if count is less than zero then the
+      current process is suspended and put on the semaphore queue *)
+
+PROCEDURE V( VAR sem : Semaphore );
+  (* increments semaphore count; if count is less than or equal to zero,
+     it then enables a process on the semaphore queue                 *)
+
+END Schedule.
